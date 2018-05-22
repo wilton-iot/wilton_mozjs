@@ -48,6 +48,8 @@
 #include "wilton/support/exception.hpp"
 #include "wilton/support/logging.hpp"
 
+#include "mozjs_config.hpp"
+
 namespace wilton {
 namespace mozjs {
 
@@ -74,6 +76,24 @@ JSClass global_class = {
     JSCLASS_GLOBAL_FLAGS,
     &global_ops
 };
+
+mozjs_config get_config() {
+    char* conf = nullptr;
+    int conf_len = 0;
+    auto err = wilton_config(std::addressof(conf), std::addressof(conf_len));
+    if (nullptr != err) support::throw_wilton_error(err, TRACEMSG(err));
+    auto deferred = sl::support::defer([conf] () STATICLIB_NOEXCEPT {
+        wilton_free(conf);
+    });
+    auto json = sl::json::load({const_cast<const char*>(conf), conf_len});
+    return mozjs_config(json["environmentVariables"]);
+}
+
+void set_options(JS::ContextOptions& opts, mozjs_config& cfg) {
+    opts.setBaseline(cfg.option_baseline);
+    opts.setIon(cfg.option_ion);
+    opts.setNativeRegExp(cfg.option_native_regexp);
+}
 
 std::string jsval_to_string(JSContext* ctx, JS::HandleValue val) STATICLIB_NOEXCEPT {
     auto sval_ptr = JS::ToString(ctx, val);
@@ -305,8 +325,13 @@ public:
     }
 
     impl(sl::io::span<const char> init_code) {
-        wilton::support::log_info("wilton.engine.mozjs.init", "Initializing engine instance ...");
-        this->ctx = JS_NewContext(JS::DefaultHeapMaxBytes);
+        auto cfg = get_config();
+        wilton::support::log_info("wilton.engine.mozjs.init", std::string() + "Initializing engine instance," +
+                " config: [" + cfg.to_json().dumps() + "]");
+        this->ctx = JS_NewContext(cfg.heap_max_bytes > 0 ? cfg.heap_max_bytes : JS::DefaultHeapMaxBytes,
+                cfg.max_nursery_bytes > 0 ? cfg.max_nursery_bytes : JS::DefaultNurseryBytes);
+        auto& opts = JS::ContextOptionsRef(this->ctx);
+        set_options(opts, cfg);
         if (nullptr == this->ctx) throw support::exception(TRACEMSG("'JS_NewContext' error"));
         JS_SetContextPrivate(ctx, this);
 
