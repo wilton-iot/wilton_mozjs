@@ -29,7 +29,9 @@
 #include <string>
 #include <vector>
 
+#if ( __GNUC__ <= 4 ) && ( __GNUC_MINOR__ <= 7 )
 #define alignas(VAL) __attribute__ ((aligned(VAL)))
+#endif
 #include "jsapi.h"
 #include "js/Initialization.h"
 #include "js/Conversions.h"

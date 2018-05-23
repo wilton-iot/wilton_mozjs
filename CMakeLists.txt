@@ -56,7 +56,7 @@ target_compile_options ( ${PROJECT_NAME} PRIVATE
         ${${PROJECT_NAME}_DEPS_PC_CFLAGS_OTHER}
         -Wno-unused-parameter
         -Wno-missing-field-initializers )
-if ( CMAKE_BUILD_TYPE MATCHES "Release" )
+if ( CMAKE_BUILD_TYPE MATCHES "Release" AND NOT (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER 6.0 ))
     target_compile_options ( ${PROJECT_NAME} PRIVATE 
             # gcc 4.7 miscompiles this_thread::get_id()
             # stringification for some reason
