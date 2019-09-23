@@ -20,6 +20,8 @@
  * 
  * Created on May 8, 2018, 9:59 PM
  */
+
+#include <cstdio>
 #include <memory>
 #include <string>
 
@@ -65,6 +67,8 @@ void clean_tls(void*, const char* thread_id, int thread_id_len) {
 
 extern "C" char* wilton_module_init() {
     try {
+        puts("WARN: Available version of MozJS engine (52.8.0esr) is outdated,"
+                " consider using JavaScriptCore engine instead");
         wilton::mozjs::mozjs_engine::initialize();
         wilton::mozjs::shared_tlmap();
         auto err = wilton_register_tls_cleaner(nullptr, wilton::mozjs::clean_tls);
